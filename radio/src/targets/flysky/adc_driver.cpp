@@ -72,18 +72,10 @@ const uint8_t ana_mapping[NUM_ANALOGS] = {3, 2, 1, 0, 6, 7, 4, 5, 8, 9, 10};
 
 uint16_t adcValues[NUM_ANALOGS] __DMA;
 
-static void adc_dma_arm(void)
-{
-  ADC_StartOfConversion(ADC_MAIN);
-}
-
 void adcInit()
 {
-  // -- init rcc --
-  // ADC CLOCK = 24 / 4 = 6MHz
-  RCC_ADCCLKConfig(RCC_ADCCLK_PCLK_Div2);
+  ADC_ClockModeConfig(ADC_MAIN, ADC_ClockMode_SynClkDiv4);
 
-  // init gpio
   GPIO_InitTypeDef gpio_init;
   GPIO_StructInit(&gpio_init);
 
@@ -157,9 +149,11 @@ void adcInit()
   DMA_Cmd(ADC_DMA_Channel, ENABLE);
 
   // start conversion:
-  adc_dma_arm();
+  ADC_MAIN->CR |= (uint32_t)ADC_CR_ADSTART;
 }
 
+// Current implementation runs in circular mode
+// and does not do 4 samples averaging.
 void adcRead()
 {
   // adc dma finished?
@@ -173,13 +167,8 @@ void adcRead()
     }
 #endif
     // fine, arm DMA again:
-    adc_dma_arm();
+    ADC_MAIN->CR |= (uint32_t)ADC_CR_ADSTART;
   }
-}
-
-// TODO
-void adcStop()
-{
 }
 
 #if !defined(SIMU)
